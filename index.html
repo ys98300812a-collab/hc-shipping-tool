@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宏勤 出貨明細轉單</title>
+    <title>宏勤 出貨明細轉單系統 v3.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     
     <style>
         :root { --primary: #334155; --accent: #2563eb; --bg: #f8fafc; --success: #059669; }
@@ -18,83 +19,53 @@
         .step-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; color: var(--primary); }
         .step-num { background: var(--primary); color: white; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; justify-content: center; align-items: center; font-size: 12px; margin-right: 8px; }
 
-        /* 上傳區域 */
         .upload-box { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; border-radius: 10px; cursor: pointer; background: #fff; transition: 0.3s; margin-bottom: 30px; }
-        .upload-box:hover, .upload-box.dragover { border-color: var(--accent); background: #f0f7ff; }
+        .upload-box.dragover { border-color: var(--accent); background: #f0f7ff; }
         #fileInput { display: none; }
 
         /* 設定區域 */
-        .config-section { margin-top: 25px; padding: 20px; background: #f8fafc; border-radius: 10px; display: none; border: 1px solid #e2e8f0; margin-bottom: 30px; }
-        .mapping-table { width: 100%; border-collapse: collapse; }
-        .mapping-table th { text-align: left; font-size: 13px; color: #64748b; padding-bottom: 8px; }
-        .mapping-table td { padding: 6px 4px; }
-        input[type="text"], select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; box-sizing: border-box; }
+        .config-section { margin-top: 25px; padding: 25px; background: #f8fafc; border-radius: 10px; display: none; border: 1px solid #e2e8f0; margin-bottom: 30px; }
+        .mapping-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .mapping-header { font-size: 13px; color: #64748b; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"], select { padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; box-sizing: border-box; }
 
         .extra-header { margin-top: 20px; border-top: 1px dashed #e2e8f0; padding-top: 15px; display: flex; justify-content: space-between; align-items: center; }
         .add-btn { background: #fff; color: var(--accent); border: 1px solid var(--accent); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-        .extra-item { display: flex; align-items: center; gap: 10px; margin-top: 10px; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; }
-        .remove-btn { color: #dc2626; cursor: pointer; font-size: 18px; padding: 0 5px; }
 
-        /* 按鈕區 */
+        /* 拖曳項目 */
+        .extra-item { display: flex; align-items: center; gap: 10px; margin-top: 10px; background: white; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .drag-handle { cursor: grab; color: #cbd5e1; font-size: 20px; }
+        .remove-btn { color: #dc2626; cursor: pointer; font-size: 18px; margin-left: auto; }
+
+        /* 個別編輯面板 */
+        .individual-edit-btn { background: #fff; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .edit-panel { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; margin-top: 10px; border-radius: 10px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .edit-field-group { margin-bottom: 12px; }
+        .edit-field-group label { display: block; font-size: 12px; color: #64748b; margin-bottom: 4px; font-weight: bold; }
+        .edit-field-group input { width: 100%; padding: 8px; font-size: 13px; }
+
         .action-btns { display: flex; gap: 15px; margin-top: 20px; }
         .preview-btn { flex: 1; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
         .download-btn { flex: 1; padding: 16px; background: var(--success); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; display: none; }
 
-        /* 預覽區 */
         #preview-container { margin-top: 30px; border: 2px solid #e2e8f0; padding: 10px; border-radius: 8px; background: #94a3b8; display: none; }
-        .preview-label { text-align: center; color: white; font-size: 12px; margin-bottom: 10px; font-weight: bold; }
 
-        /* PDF 內容結構 - 極致置頂與分頁優化 */
-        #pdf-content { width: 100%; background: white; }
-        .print-page { 
-            width: 210mm; 
-            min-height: 296mm; 
-            padding: 0mm 15mm 10mm 15mm; 
-            box-sizing: border-box; 
-            page-break-after: always; 
-            background: white; 
-            color: black; 
-            margin: 0 auto;
-            position: relative; /* 為了讓頁碼絕對定位 */
-        }
-        .print-page:last-child { 
-            page-break-after: auto !important; 
-        }
-
-        .slip-header { 
-            display: flex; 
-            justify-content: space-between; 
-            border-bottom: 2px solid #000; 
-            padding-bottom: 5px; 
-            padding-top: 10mm; 
-            margin-bottom: 15px; 
-            align-items: flex-end; 
-        }
-        .slip-header h2 { margin: 0; font-size: 24px; line-height: 1; }
+        /* PDF 樣式 */
+        .print-page { width: 210mm; min-height: 296mm; padding: 5mm 15mm 10mm 15mm; box-sizing: border-box; page-break-after: always; background: white; color: black; margin: 0 auto; position: relative; }
+        .slip-header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 5px; padding-top: 10mm; margin-bottom: 15px; align-items: flex-end; }
         .item-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
         .item-table th, .item-table td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 14px; }
-        .item-table th { background: #f2f2f2; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; font-size: 14px; }
         .remark-box { border: 1px solid #000; padding: 12px; min-height: 50px; margin-top: 8px; white-space: pre-wrap; font-size: 13px; }
+        .page-counter { position: absolute; bottom: 10mm; right: 15mm; font-size: 12px; color: #64748b; }
         
-        /* 頁碼樣式 */
-        .page-counter {
-            position: absolute;
-            bottom: 10mm;
-            right: 15mm;
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        .footer-sign { text-align: center; margin-top: 40px; font-size: 12px; color: #94a3b8; border-top: 1px solid #eee; padding-top: 15px; }
+        .no-print { display: block; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <header class="no-print">
-        <h1>宏勤 出貨明細轉單</h1>
-    </header>
+    <header class="no-print"><h1>宏勤 出貨明細轉單 <span>v3.0</span></h1></header>
 
     <div class="step-title no-print"><span class="step-num">1</span> 載入原始資料 (Excel / CSV)</div>
     <div id="dropZone" class="upload-box no-print">
@@ -105,33 +76,23 @@
 
     <div id="configSection" class="config-section no-print">
         <div class="step-title"><span class="step-num">2</span> 欄位對應與名稱修改</div>
-        <table class="mapping-table">
-            <thead>
-                <tr>
-                    <th width="45%">PDF 顯示名稱 (可修改)</th>
-                    <th width="55%">對應 Excel 原始欄位</th>
-                </tr>
-            </thead>
-            <tbody id="basicFields"></tbody>
-        </table>
+        <div class="mapping-grid" id="coreFieldsArea"></div>
+
         <div class="extra-header">
-            <h3 style="margin:0; font-size: 15px;">＋ 客製額外資訊</h3>
+            <h3 style="margin:0; font-size: 15px;">＋ 客製額外資訊 (支援拖曳排序 ⠿)</h3>
             <button class="add-btn" onclick="addExtraField()">新增欄位</button>
         </div>
         <div id="extraFieldsContainer"></div>
+
         <div class="action-btns">
-            <button class="preview-btn" onclick="preparePreview()">產出預覽畫面</button>
-            <button id="downloadBtn" class="download-btn" onclick="downloadPDF()">下載 PDF 檔案</button>
+            <button class="preview-btn" onclick="preparePreview()">1. 產出預覽 (可在下方進行單筆修改)</button>
+            <button id="downloadBtn" class="download-btn" onclick="downloadPDF()">2. 下載所有 PDF</button>
         </div>
     </div>
 
     <div id="preview-container" class="no-print">
-        <div class="preview-label">--- 預覽區 (PREVIEW) ---</div>
+        <div style="text-align: center; color: white; margin-bottom: 10px; font-size: 12px;">--- 預覽區 (每張單可獨立點擊左側按鈕修改) ---</div>
         <div id="pdf-content"></div>
-    </div>
-
-    <div class="footer-sign no-print">
-        by：Hugo | 版本：2026-04-13
     </div>
 </div>
 
@@ -139,6 +100,7 @@
     let rawData = [];
     let headers = [];
     let extraCount = 0;
+    let individualOverrides = {}; // 格式: { orderId: { remark: "", extras: { "欄位名": "自訂值" } } }
 
     const baseConfig = [
         { id: "orderId", label: "訂單編號", match: ["訂單編號", "Order ID"] },
@@ -148,13 +110,14 @@
         { id: "remark", label: "備註說明", match: ["備註", "Remark"] }
     ];
 
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('fileInput');
+    new Sortable(document.getElementById('extraFieldsContainer'), { handle: '.drag-handle', animation: 150 });
 
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
     dropZone.onclick = () => fileInput.click();
+    dropZone.ondrop = (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); };
     dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
     dropZone.ondragleave = () => dropZone.classList.remove('dragover');
-    dropZone.ondrop = (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); };
     fileInput.onchange = (e) => handleFile(e.target.files[0]);
 
     function handleFile(file) {
@@ -165,27 +128,19 @@
             const workbook = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
             rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
             headers = Object.keys(rawData[0]);
-            renderConfigUI();
+            renderCoreUI();
         };
         reader.readAsArrayBuffer(file);
     }
 
-    function renderConfigUI() {
-        const container = document.getElementById('basicFields');
-        container.innerHTML = "";
+    function renderCoreUI() {
+        const area = document.getElementById('coreFieldsArea');
+        area.innerHTML = '<div class="mapping-header">PDF 顯示名稱</div><div class="mapping-header">Excel 對應欄位</div>';
         document.getElementById('configSection').style.display = "block";
-        document.getElementById('preview-container').style.display = "none";
-        document.getElementById('downloadBtn').style.display = "none";
         baseConfig.forEach(conf => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td><input type="text" id="label_${conf.id}" value="${conf.label}"></td><td><select id="src_${conf.id}"></select></td>`;
-            const sel = tr.querySelector('select');
-            headers.forEach(h => {
-                const opt = new Option(h, h);
-                if(conf.match.some(m => h.includes(m))) opt.selected = true;
-                sel.add(opt);
-            });
-            container.appendChild(tr);
+            const inp = `<input type="text" id="label_${conf.id}" value="${conf.label}">`;
+            const sel = `<select id="src_${conf.id}">${headers.map(h => `<option value="${h}" ${conf.match.some(m => h.includes(m)) ? 'selected' : ''}>${h}</option>`).join('')}</select>`;
+            area.innerHTML += inp + sel;
         });
     }
 
@@ -195,14 +150,28 @@
         const div = document.createElement('div');
         div.className = "extra-item";
         div.id = `row_${id}`;
-        div.innerHTML = `<input type="text" id="extraLabel_${id}" placeholder="標題" style="width:120px;"><select id="extraSrc_${id}" style="flex:1;"></select><span class="remove-btn" onclick="document.getElementById('row_${id}').remove()">✕</span>`;
-        const sel = div.querySelector('select');
-        headers.forEach(h => sel.add(new Option(h, h)));
+        div.innerHTML = `
+            <div class="drag-handle">⠿</div>
+            <input type="text" id="extraLabel_${id}" placeholder="標題" style="width:110px;">
+            <select id="extraMode_${id}" onchange="toggleMode('${id}')" style="width:100px;">
+                <option value="excel">Excel</option><option value="manual">手動</option>
+            </select>
+            <select id="extraSrc_${id}" style="flex:1;">${headers.map(h => `<option value="${h}">${h}</option>`).join('')}</select>
+            <input type="text" id="extraManual_${id}" placeholder="內容" style="flex:1; display:none;">
+            <span class="remove-btn" onclick="document.getElementById('row_${id}').remove()">✕</span>
+        `;
         document.getElementById('extraFieldsContainer').appendChild(div);
+    }
+
+    function toggleMode(id) {
+        const mode = document.getElementById(`extraMode_${id}`).value;
+        document.getElementById(`extraSrc_${id}`).style.display = (mode === 'excel') ? 'block' : 'none';
+        document.getElementById(`extraManual_${id}`).style.display = (mode === 'manual') ? 'block' : 'none';
     }
 
     function preparePreview() {
         const content = document.getElementById('pdf-content');
+        content.innerHTML = "";
         const settings = {
             orderId: { label: document.getElementById('label_orderId').value, src: document.getElementById('src_orderId').value },
             sku: { label: document.getElementById('label_sku').value, src: document.getElementById('src_sku').value },
@@ -210,69 +179,89 @@
             qty: { label: document.getElementById('label_qty').value, src: document.getElementById('src_qty').value },
             remark: { label: document.getElementById('label_remark').value, src: document.getElementById('src_remark').value }
         };
-        const extras = [];
-        document.querySelectorAll('.extra-item').forEach(item => {
+
+        const extrasConfig = Array.from(document.querySelectorAll('.extra-item')).map(item => {
             const id = item.id.replace('row_', '');
-            extras.push({ label: document.getElementById(`extraLabel_${id}`).value || "資訊", src: document.getElementById(`extraSrc_${id}`).value });
+            return {
+                label: document.getElementById(`extraLabel_${id}`).value || "資訊",
+                mode: document.getElementById(`extraMode_${id}`).value,
+                excelSrc: document.getElementById(`extraSrc_${id}`).value,
+                manualVal: document.getElementById(`extraManual_${id}`).value
+            };
         });
+
         const grouped = rawData.reduce((acc, row) => {
             const id = row[settings.orderId.src];
-            if(!id) return acc;
-            if(!acc[id]) acc[id] = [];
-            acc[id].push(row);
+            if(id) { if(!acc[id]) acc[id] = []; acc[id].push(row); }
             return acc;
         }, {});
 
         const orderIds = Object.keys(grouped);
-        const totalPages = orderIds.length;
+        orderIds.forEach((oid, idx) => {
+            const items = grouped[oid];
+            const override = individualOverrides[oid] || { remark: items[0][settings.remark.src], extras: {} };
+            
+            const pageDiv = document.createElement('div');
+            pageDiv.className = "print-page";
+            
+            // 處理客製欄位顯示 (優先使用 override)
+            const extrasHtml = extrasConfig.map(e => {
+                const val = (override.extras[e.label] !== undefined) ? override.extras[e.label] : (e.mode === 'excel' ? items[0][e.excelSrc] : e.manualVal);
+                return `<div><strong>${e.label}:</strong> ${val || '-'}</div>`;
+            }).join('');
 
-        let html = "";
-        orderIds.forEach((orderId, index) => {
-            const items = grouped[orderId];
-            html += `
-                <div class="print-page">
-                    <div class="slip-header">
-                        <h2>出貨明細單</h2>
-                        <div style="text-align:right; font-size:13px;">日期: ${new Date().toLocaleDateString()}</div>
+            pageDiv.innerHTML = `
+                <div class="slip-header"><h2>出貨明細單</h2><div>日期: ${new Date().toLocaleDateString()}</div></div>
+                <div class="info-grid"><div><strong>${settings.orderId.label}:</strong> ${oid}</div>${extrasHtml}</div>
+                <table class="item-table">
+                    <thead><tr><th>序號</th><th>${settings.sku.label}</th><th>${settings.itemName.label}</th><th>${settings.qty.label}</th></tr></thead>
+                    <tbody>${items.map((it, i) => `<tr><td>${i+1}</td><td>${it[settings.sku.src]||'-'}</td><td>${it[settings.itemName.src]||'-'}</td><td>${it[settings.qty.src]||1}</td></tr>`).join('')}</tbody>
+                </table>
+                <div style="font-weight:bold; font-size:14px;">${settings.remark.label}:</div>
+                <div class="remark-box">${override.remark || '無'}</div>
+                <div class="page-counter">${idx + 1} / ${orderIds.length}</div>
+                
+                <div class="no-print" style="position: absolute; left: -180px; top: 10px; width: 160px;">
+                    <button class="individual-edit-btn" onclick="toggleEdit('${oid}')">📝 修改此單客製資訊</button>
+                    <div id="edit_${oid}" class="edit-panel">
+                        <div class="edit-field-group"><label>備註內容</label><textarea id="edRem_${oid}" style="width:100%; height:50px;">${override.remark || ''}</textarea></div>
+                        ${extrasConfig.map(e => `
+                            <div class="edit-field-group">
+                                <label>${e.label}</label>
+                                <input type="text" class="edEx_${oid}" data-label="${e.label}" value="${override.extras[e.label] !== undefined ? override.extras[e.label] : (e.mode === 'excel' ? items[0][e.excelSrc] : e.manualVal)}">
+                            </div>
+                        `).join('')}
+                        <button onclick="saveEdit('${oid}')" style="width:100%; background:var(--success); color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">儲存此單修改</button>
                     </div>
-                    <div class="info-grid">
-                        <div><strong>${settings.orderId.label}:</strong> ${orderId}</div>
-                        ${extras.map(e => `<div><strong>${e.label}:</strong> ${items[0][e.src] || '-'}</div>`).join('')}
-                    </div>
-                    <table class="item-table">
-                        <thead><tr><th width="10%">序號</th><th width="25%">${settings.sku.label}</th><th width="50%">${settings.itemName.label}</th><th width="15%">${settings.qty.label}</th></tr></thead>
-                        <tbody>${items.map((it, idx) => `<tr><td>${idx+1}</td><td>${it[settings.sku.src] || '-'}</td><td>${it[settings.itemName.src] || '-'}</td><td>${it[settings.qty.src] || '1'}</td></tr>`).join('')}</tbody>
-                    </table>
-                    <div style="font-weight:bold; font-size:14px;">${settings.remark.label}:</div>
-                    <div class="remark-box">${items[0][settings.remark.src] || '無'}</div>
-                    
-                    <div class="page-counter">${index + 1} / ${totalPages}</div>
                 </div>
             `;
+            content.appendChild(pageDiv);
         });
-        
-        content.innerHTML = html;
+
         document.getElementById('preview-container').style.display = "block";
         document.getElementById('downloadBtn').style.display = "block";
         document.getElementById('preview-container').scrollIntoView({ behavior: 'smooth' });
     }
 
+    window.toggleEdit = (oid) => {
+        const el = document.getElementById(`edit_${oid}`);
+        el.style.display = el.style.display === 'block' ? 'none' : 'block';
+    };
+
+    window.saveEdit = (oid) => {
+        const remark = document.getElementById(`edRem_${oid}`).value;
+        const extras = {};
+        document.querySelectorAll(`.edEx_${oid}`).forEach(inp => {
+            extras[inp.getAttribute('data-label')] = inp.value;
+        });
+        individualOverrides[oid] = { remark, extras };
+        preparePreview();
+    };
+
     function downloadPDF() {
         const element = document.getElementById('pdf-content');
         window.scrollTo(0,0);
-        const opt = { 
-            margin: [0, 0, 0, 0],
-            filename: `宏勤出貨明細_${Date.now()}.pdf`, 
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2, 
-                useCORS: true,
-                scrollY: 0,
-                scrollX: 0
-            }, 
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
-        };
-        html2pdf().set(opt).from(element).save();
+        html2pdf().set({ margin:0, filename:`出貨明細_${Date.now()}.pdf`, html2canvas:{scale:2, scrollY:0}, jsPDF:{unit:'mm', format:'a4'} }).from(element).save();
     }
 </script>
 </body>
