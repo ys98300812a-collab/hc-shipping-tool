@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宏勤 出貨明細轉單系統 v3.4</title>
+    <title>宏勤 出貨明細轉單系統 v3.4.2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -82,20 +82,20 @@
 <div id="helpModal" class="modal-overlay no-print" onclick="closeModalOutside(event)">
     <div class="modal-content">
         <button class="modal-close" onclick="closeModal()">✖</button>
-        <h2>📦 宏勤 出貨明細轉單系統 (v3.4) 使用教學</h2>
+        <h2>📦 宏勤 出貨明細轉單系統 (v3.4.2) 使用教學</h2>
         
         <h3>✨ 核心功能特色</h3>
         <ul>
             <li><strong>自動化日期修復</strong>：智慧解析 Excel 底層的日期序號，自動轉回標準 YYYY-MM-DD 格式。</li>
             <li><strong>深度客製化編輯</strong>：支援單筆訂單的「出貨日期」、「商品明細」及「備註」手動修改。</li>
-            <li><strong>動態延伸欄位</strong>：可無限擴充表頭資訊，並支援拖曳排序。</li>
+            <li><strong>彈性留空對應</strong>：遇到不需顯示的欄位可選擇「[無]」，確保印出的單據乾淨留白。</li>
             <li><strong>安全隱私</strong>：全網頁端離線運算，企業資料「零外洩」。</li>
         </ul>
 
         <h3>📖 標準操作步驟</h3>
         <ol>
             <li><strong>載入資料</strong>：將匯出的 Excel 或 CSV 訂單報表拖曳至畫面虛線框內。</li>
-            <li><strong>確認欄位</strong>：檢查系統自動配對的欄位是否正確，若有誤可從下拉選單修正。</li>
+            <li><strong>確認欄位</strong>：檢查系統自動配對的欄位是否正確。若不想要顯示該欄資料，可於下拉選單選擇「[無]」。</li>
             <li><strong>產出預覽</strong>：點擊「1. 產出預覽」，系統會在下方生成所有單據。</li>
             <li><strong>單筆微調 (選用)</strong>：點擊該單據左側的「📝 修改此單內容」，修改後點擊儲存，該訂單即被「鎖定」保護。</li>
             <li><strong>下載存檔</strong>：確認預覽無誤後，點擊「2. 下載所有 PDF」匯出檔案。</li>
@@ -109,6 +109,10 @@
             - 若要全部重來：點擊總控台的 [清除所有手動修改] 按鈕即可解鎖。</div>
         </div>
         <div class="faq-box">
+            <div class="faq-q">Q: 左邊的修改面板被螢幕裁切掉一半怎麼辦？</div>
+            <div class="faq-a">A: 若您的螢幕解析度較小，請按住鍵盤的 <strong>Ctrl 鍵並滾動滑鼠滾輪</strong>（或按 Ctrl 加上 - 號），將網頁稍微縮小即可完整顯示。</div>
+        </div>
+        <div class="faq-box">
             <div class="faq-q">Q: 下載的 PDF 版面跑位或被截斷？</div>
             <div class="faq-a">A: 下載前請確保瀏覽器縮放比例為 <strong>100%</strong>，並且在運算下載期間，盡量不要上下滾動視窗。</div>
         </div>
@@ -117,7 +121,7 @@
 
 <div class="container">
     <header class="no-print">
-        <h1>宏勤 出貨明細轉單 <span>v3.4</span></h1>
+        <h1>宏勤 出貨明細轉單 <span>v3.4.2</span></h1>
         <button class="help-btn" onclick="openModal()">📖 使用教學與常見問題</button>
     </header>
 
@@ -212,9 +216,26 @@
         const area = document.getElementById('coreFieldsArea');
         area.innerHTML = '<div class="mapping-header">PDF 顯示名稱</div><div class="mapping-header">Excel 對應欄位</div>';
         document.getElementById('configSection').style.display = "block";
+        
         baseConfig.forEach(conf => {
             const inp = `<input type="text" id="label_${conf.id}" value="${conf.label}">`;
-            const sel = `<select id="src_${conf.id}">${headers.map(h => `<option value="${h}" ${conf.match.some(m => h.includes(m)) ? 'selected' : ''}>${h}</option>`).join('')}</select>`;
+            
+            let matchFound = false;
+            const optionsHtml = headers.map(h => {
+                let isSelected = false;
+                // 優化：只讓第一個完全符合或包含關鍵字的欄位被選中，防止重複欄位互相覆蓋
+                if (!matchFound && conf.match.some(m => h === m || h.includes(m))) {
+                    isSelected = true;
+                    matchFound = true;
+                }
+                return `<option value="${h}" ${isSelected ? 'selected' : ''}>${h}</option>`;
+            }).join('');
+
+            const sel = `<select id="src_${conf.id}">
+                <option value="" ${!matchFound ? 'selected' : ''}>[無]</option>
+                ${optionsHtml}
+            </select>`;
+            
             area.innerHTML += inp + sel;
         });
     }
@@ -231,7 +252,10 @@
             <select id="extraMode_${id}" onchange="toggleMode('${id}')" style="width:100px;">
                 <option value="excel">Excel</option><option value="manual">手動</option>
             </select>
-            <select id="extraSrc_${id}" style="flex:1;">${headers.map(h => `<option value="${h}">${h}</option>`).join('')}</select>
+            <select id="extraSrc_${id}" style="flex:1;">
+                <option value="">[無]</option>
+                ${headers.map(h => `<option value="${h}">${h}</option>`).join('')}
+            </select>
             <input type="text" id="extraManual_${id}" placeholder="內容" style="flex:1; display:none;">
             <span class="remove-btn" onclick="document.getElementById('row_${id}').remove()">✕</span>
         `;
@@ -287,30 +311,37 @@
             const excelRows = grouped[oid];
             const override = individualOverrides[oid];
             
-            let rawTimeValue = excelRows[0][settings.orderTime.src];
+            let rawTimeValue = settings.orderTime.src ? excelRows[0][settings.orderTime.src] : "";
             let cleanOrderTime = formatExcelDate(rawTimeValue);
 
             const finalShipDate = override ? override.shipDate : todayStr;
-            const finalRemark = override ? override.remark : (excelRows[0][settings.remark.src] || '');
+            const finalRemark = override ? override.remark : (settings.remark.src ? (excelRows[0][settings.remark.src] || '') : '');
             
             const displayItems = (override && override.items) ? override.items : excelRows.map(it => ({
-                sku: it[settings.sku.src] || '',
-                itemName: it[settings.itemName.src] || '',
-                qty: it[settings.qty.src] || 1
+                sku: settings.sku.src ? (it[settings.sku.src] || '') : '',
+                itemName: settings.itemName.src ? (it[settings.itemName.src] || '') : '',
+                qty: settings.qty.src ? (it[settings.qty.src] || 1) : 1
             }));
 
             const pageDiv = document.createElement('div');
             pageDiv.className = "print-page";
             
             const extrasHtml = extrasConfig.map(e => {
-                const val = (override && override.extras[e.label] !== undefined) ? override.extras[e.label] : (e.mode === 'excel' ? excelRows[0][e.excelSrc] : e.manualVal);
-                return `<div><strong>${e.label}:</strong> ${val || '-'}</div>`;
+                let val = '';
+                if (override && override.extras[e.label] !== undefined) {
+                    val = override.extras[e.label];
+                } else if (e.mode === 'excel') {
+                    val = e.excelSrc ? (excelRows[0][e.excelSrc] || '') : '';
+                } else {
+                    val = e.manualVal || '';
+                }
+                return `<div><strong>${e.label}:</strong> ${val}</div>`;
             }).join('');
 
             pageDiv.innerHTML = `
                 <div class="slip-header"><h2>出貨明細單</h2><div>出貨日期: ${finalShipDate}</div></div>
                 <div class="info-grid">
-                    <div><strong>${settings.orderId.label}:</strong> ${oid} <span style="font-size: 13px; color: #555;">(${cleanOrderTime})</span></div>
+                    <div><strong>${settings.orderId.label}:</strong> ${oid} <span style="font-size: 13px; color: #555;">${cleanOrderTime ? '(' + cleanOrderTime + ')' : ''}</span></div>
                     ${extrasHtml}
                 </div>
                 <table class="item-table">
@@ -318,19 +349,28 @@
                     <tbody>${displayItems.map((it, i) => `<tr><td>${i+1}</td><td>${it.sku}</td><td>${it.itemName}</td><td>${it.qty}</td></tr>`).join('')}</tbody>
                 </table>
                 <div style="font-weight:bold; font-size:14px;">${settings.remark.label}:</div>
-                <div class="remark-box">${finalRemark || '無'}</div>
+                <div class="remark-box">${finalRemark}</div>
                 <div class="page-counter">${idx + 1} / ${orderIds.length}</div>
                 
                 <div class="no-print no-print-edit-wrapper">
                     <button class="individual-edit-btn" onclick="toggleEdit('${oid}')">📝 修改此單內容</button>
                     <div id="edit_${oid}" class="edit-panel">
                         <div class="edit-field-group"><label>出貨日期</label><input type="date" id="edShipDate_${oid}" value="${finalShipDate}"></div>
-                        ${extrasConfig.map(e => `
+                        ${extrasConfig.map(e => {
+                            let initVal = '';
+                            if (override && override.extras[e.label] !== undefined) {
+                                initVal = override.extras[e.label];
+                            } else if (e.mode === 'excel') {
+                                initVal = e.excelSrc ? (excelRows[0][e.excelSrc] || '') : '';
+                            } else {
+                                initVal = e.manualVal || '';
+                            }
+                            return `
                             <div class="edit-field-group">
                                 <label>${e.label}</label>
-                                <input type="text" class="edEx_${oid}" data-label="${e.label}" value="${(override && override.extras[e.label] !== undefined) ? override.extras[e.label] : (e.mode === 'excel' ? excelRows[0][e.excelSrc] : e.manualVal)}">
-                            </div>
-                        `).join('')}
+                                <input type="text" class="edEx_${oid}" data-label="${e.label}" value="${initVal}">
+                            </div>`;
+                        }).join('')}
                         <div class="edit-field-group">
                             <label>商品清單修改</label>
                             ${displayItems.map((it, i) => `
