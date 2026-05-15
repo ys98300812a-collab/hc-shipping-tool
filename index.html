@@ -16,7 +16,6 @@
         header { text-align: center; margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; position: relative;}
         h1 { margin: 0; color: var(--primary); font-size: 24px; letter-spacing: 1px; }
 
-        /* 說明書按鈕 */
         .help-btn { position: absolute; right: 0; top: 0; background: #eff6ff; color: var(--accent); border: 1px solid var(--accent); padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.3s; }
         .help-btn:hover { background: var(--accent); color: white; }
 
@@ -61,7 +60,6 @@
         .remark-box { border: 1px solid #000; padding: 12px; min-height: 50px; margin-top: 8px; white-space: pre-wrap; font-size: 13px; }
         .page-counter { position: absolute; bottom: 10mm; right: 15mm; font-size: 12px; color: #64748b; }
         
-        /* 彈出視窗 (Modal) 樣式 */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: none; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 90%; max-width: 800px; max-height: 85vh; border-radius: 12px; padding: 30px; box-sizing: border-box; overflow-y: auto; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); line-height: 1.6;}
         .modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; }
@@ -73,6 +71,10 @@
         .faq-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
         .faq-q { font-weight: bold; color: var(--primary); margin-bottom: 5px; }
         .faq-a { color: #475569; font-size: 14px;}
+        
+        /* 頁尾版權宣告 */
+        .developer-footer { margin-top: 40px; padding-top: 20px; border-top: 1px dashed #cbd5e1; text-align: center; color: #64748b; font-size: 12px; line-height: 1.8; }
+        .developer-footer strong { color: var(--primary); }
     </style>
 </head>
 <body>
@@ -84,8 +86,8 @@
         
         <h3>✨ 核心功能特色</h3>
         <ul>
-            <li><strong>自動化日期修復</strong>：智慧解析 Excel 底層的日期序號（如 46155），自動轉回標準 YYYY-MM-DD 格式。</li>
-            <li><strong>深度客製化編輯</strong>：支援單筆訂單的「出貨日期」、「商品明細 (SKU/品名/數量)」及「備註」手動修改。</li>
+            <li><strong>自動化日期修復</strong>：智慧解析 Excel 底層的日期序號，自動轉回標準 YYYY-MM-DD 格式。</li>
+            <li><strong>深度客製化編輯</strong>：支援單筆訂單的「出貨日期」、「商品明細」及「備註」手動修改。</li>
             <li><strong>動態延伸欄位</strong>：可無限擴充表頭資訊，並支援拖曳排序。</li>
             <li><strong>安全隱私</strong>：全網頁端離線運算，企業資料「零外洩」。</li>
         </ul>
@@ -93,22 +95,22 @@
         <h3>📖 標準操作步驟</h3>
         <ol>
             <li><strong>載入資料</strong>：將匯出的 Excel 或 CSV 訂單報表拖曳至畫面虛線框內。</li>
-            <li><strong>確認欄位</strong>：檢查系統自動配對的「PDF 顯示名稱」與「Excel 欄位」是否正確，若有誤可從下拉選單修正。</li>
+            <li><strong>確認欄位</strong>：檢查系統自動配對的欄位是否正確，若有誤可從下拉選單修正。</li>
             <li><strong>產出預覽</strong>：點擊「1. 產出預覽」，系統會在下方生成所有單據。</li>
-            <li><strong>單筆微調 (選用)</strong>：若需修改特定訂單，點擊該單據左側的「📝 修改此單內容」，修改後點擊儲存，該訂單即被「鎖定」保護。</li>
-            <li><strong>下載存檔</strong>：確認預覽無誤後，點擊「2. 下載所有 PDF」匯出檔案並列印。</li>
+            <li><strong>單筆微調 (選用)</strong>：點擊該單據左側的「📝 修改此單內容」，修改後點擊儲存，該訂單即被「鎖定」保護。</li>
+            <li><strong>下載存檔</strong>：確認預覽無誤後，點擊「2. 下載所有 PDF」匯出檔案。</li>
         </ol>
 
         <h3>⚠️ 常見問題排除 (FAQ)</h3>
         <div class="faq-box">
             <div class="faq-q">Q: 變更了 Excel 對應欄位，但產出預覽畫面卻沒有跟著更新？</div>
-            <div class="faq-a">A: 這是因為您之前針對這些訂單進行了「手動修改」，系統啟動了「編輯鎖定保護」。<br>
+            <div class="faq-a">A: 這是因為您之前針對這些訂單進行了「手動修改」，觸發了「編輯鎖定保護」。<br>
             - 若只要恢復一筆：點擊該訂單編輯面板內的 [重設此單]。<br>
             - 若要全部重來：點擊總控台的 [清除所有手動修改] 按鈕即可解鎖。</div>
         </div>
         <div class="faq-box">
             <div class="faq-q">Q: 下載的 PDF 版面跑位或被截斷？</div>
-            <div class="faq-a">A: 這通常受到瀏覽器縮放比例影響。下載前請確保瀏覽器縮放比例為 <strong>100%</strong>，並且在系統運算下載期間，盡量不要上下滾動視窗。</div>
+            <div class="faq-a">A: 下載前請確保瀏覽器縮放比例為 <strong>100%</strong>，並且在運算下載期間，盡量不要上下滾動視窗。</div>
         </div>
     </div>
 </div>
@@ -146,10 +148,14 @@
     <div id="preview-container" class="no-print">
         <div id="pdf-content"></div>
     </div>
+
+    <footer class="developer-footer no-print">
+        <div>Designed & Developed by <strong>Hugo (黃兆聰)</strong> | Manager of Channel Operations</div>
+        <div style="margin-top: 5px;">⚠️ <strong>維護聲明</strong>：本系統為內部優化之專案，未來若開發者離職，將停止系統更新與技術支援，並轉作個人作品集展示用途。</div>
+    </footer>
 </div>
 
 <script>
-    // --- 彈出視窗控制 ---
     function openModal() { document.getElementById('helpModal').style.display = 'flex'; }
     function closeModal() { document.getElementById('helpModal').style.display = 'none'; }
     function closeModalOutside(e) { if(e.target.id === 'helpModal') closeModal(); }
@@ -159,7 +165,6 @@
     let extraCount = 0;
     let individualOverrides = {}; 
 
-    // 日期序號轉換函數
     function formatExcelDate(val) {
         if (!val) return "";
         if (typeof val === 'number') {
